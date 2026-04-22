@@ -9,5 +9,4 @@ spec:
   ports:
     - protocol: TCP
       port: 8082        
-      targetPort: 8082  # The port your Node.js app is listening on
-      nodePort: 30017   # The port you will use to access it via VM_IP:30007
+      targetPort: 8082 
