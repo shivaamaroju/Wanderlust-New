@@ -17,7 +17,7 @@ spec:
       containers:
       - name: wanderlust-app
         # Replace <dockerhub-username> with your actual username
-        image: nadeemahmed07/wanderlust:v1
+        image: shivaamaroju/wanderlust:v1
         ports:
         - containerPort: 8082
         env:
