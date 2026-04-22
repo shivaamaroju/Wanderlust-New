@@ -33,18 +33,19 @@ pipeline {
         stage('Deploy to AKS') {
             steps {
                 withCredentials([file(credentialsId: "${K8S_CREDENTIAL_ID}", variable: 'KUBECONFIG')]) {
-                    // Update the deployment file with the new image tag
+                    // Update deployment.yaml with the current Jenkins Build Number
                     sh "sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}|' deployment.yaml"
                     
-                    // Apply changes using the kubeconfig file path
+                    // Apply to AKS
                     sh "kubectl apply -f deployment.yaml --kubeconfig=\$KUBECONFIG"
                     
-                    // Wait for the rollout to complete for 'wanderlust-deployment'
+                    // Verify the specific deployment name seen in your logs
                     sh "kubectl rollout status deployment/wanderlust-deployment --kubeconfig=\$KUBECONFIG"
                 }
             }
         }
     }
+
     post {
         success {
             echo "Successfully built, pushed, and deployed ${IMAGE_NAME}:${env.BUILD_NUMBER} to AKS!"
