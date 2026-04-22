@@ -30,18 +30,19 @@ pipeline {
             }
         }
 
-        stage('Deploy to AKS') {
-            steps {
-                // Updating the image tag in deployment manifest
-                sh "sed -i 's|image:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}|' deployment.yaml"
-                
-                // Using Kubernetes CLI plugin context
-                withKubeConfig([credentialsId: "${K8S_CREDENTIAL_ID}"]) {
-                    sh "kubectl apply -f secret.yaml"
-                    sh "kubectl apply -f deployment.yaml"
-                    sh "kubectl apply -f service.yaml"
-                }
-            }
+       stage('Deploy to AKS') {
+    steps {
+        // Ensure the ID matches what you saved in Jenkins Credentials
+        withCredentials([file(credentialsId: 'aks-kubeconfig-file', variable: 'KUBECONFIG')]) {
+            // Updating the image tag (from your previous log)
+            sh "sed -i 's|image:.*|image: shivaamaroju/wanderlust:1|' deployment.yaml"
+            
+            // Applying the changes
+            sh 'kubectl apply -f deployment.yaml --kubeconfig=$KUBECONFIG'
+            
+            // Optional: Verify rollout
+            sh 'kubectl rollout status deployment/wanderlust --kubeconfig=$KUBECONFIG'
         }
     }
+}
 }
