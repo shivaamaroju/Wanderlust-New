@@ -5,7 +5,7 @@ pipeline {
         IMAGE_NAME = "wanderlust"
         REGISTRY_ID = "docker-hub-token" 
         // Add your Jenkins Credentials ID for K8s here
-        K8S_CREDENTIAL_ID = "aks-kubeconfig" 
+        K8S_CREDENTIAL_ID = "aks-kubeconfig-file" 
     }
 
     stages {
