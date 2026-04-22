@@ -1,9 +1,11 @@
 pipeline {
     agent any
     environment {
-        DOCKER_HUB_USER = "nadeemahmed07"
+        DOCKER_HUB_USER = "shivaamaroju"
         IMAGE_NAME = "wanderlust"
-        REGISTRY_ID = "dockerhub-id" 
+        REGISTRY_ID = "docker-hub-token" 
+        // Add your Jenkins Credentials ID for K8s here
+        K8S_CREDENTIAL_ID = "aks-kubeconfig" 
     }
 
     stages {
@@ -28,14 +30,17 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy to AKS') {
             steps {
-                // IMPORTANT: This replaces the image tag in your YAML with the current build number
+                // Updating the image tag in deployment manifest
                 sh "sed -i 's|image:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}|' deployment.yaml"
                 
-                sh "kubectl apply -f deployment.yaml"
-                sh "kubectl apply -f service.yaml"
-                sh "kubectl apply -f secret.yaml"
+                // Using Kubernetes CLI plugin context
+                withKubeConfig([credentialsId: "${K8S_CREDENTIAL_ID}"]) {
+                    sh "kubectl apply -f secret.yaml"
+                    sh "kubectl apply -f deployment.yaml"
+                    sh "kubectl apply -f service.yaml"
+                }
             }
         }
     }
