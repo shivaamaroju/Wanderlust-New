@@ -40,7 +40,6 @@ pipeline {
                     sh "kubectl apply -f deployment.yaml --kubeconfig=\$KUBECONFIG"
                     
                     // Wait for rollout
-                    sh "kubectl rollout status deployment/wanderlust-deployment --kubeconfig=\$KUBECONFIG"
                     
                     // Fetch External IP
                     echo "Waiting for Azure to assign Public IP..."
