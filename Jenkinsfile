@@ -33,14 +33,28 @@ pipeline {
         stage('Deploy to AKS') {
             steps {
                 withCredentials([file(credentialsId: "${K8S_CREDENTIAL_ID}", variable: 'KUBECONFIG')]) {
-                    // Update deployment.yaml with the current Jenkins Build Number
-                    sh "sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.v1|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}|' deployment.yaml"
+                    // Update image tag in deployment.yaml
+                    sh "sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}|' deployment.yaml"
                     
-                    // Apply to AKS
+                    // Apply manifests
                     sh "kubectl apply -f deployment.yaml --kubeconfig=\$KUBECONFIG"
                     
-                    // Verify the specific deployment name seen in your logs
+                    // Wait for the rollout to finish
                     sh "kubectl rollout status deployment/wanderlust-deployment --kubeconfig=\$KUBECONFIG"
+                    
+                    // Logic to display the External IP
+                    echo "Fetching External IP from Azure..."
+                    script {
+                        def externalIp = ""
+                        while(externalIp == "" || externalIp.contains("pending")) {
+                            externalIp = sh(script: "kubectl get svc wanderlust-service --kubeconfig=\$KUBECONFIG -o jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
+                            if(externalIp == "" || externalIp.contains("pending")) {
+                                echo "IP is still pending... waiting 10 seconds"
+                                sleep 10
+                            }
+                        }
+                        echo "Your Application is live at: http://${externalIp}"
+                    }
                 }
             }
         }
@@ -48,10 +62,10 @@ pipeline {
 
     post {
         success {
-            echo "Successfully built, pushed, and deployed ${IMAGE_NAME}:${env.BUILD_NUMBER} to AKS!"
+            echo "Build and Deployment Successful!"
         }
         failure {
-            echo "Pipeline failed. Check the logs for errors."
+            echo "Deployment failed. Check the Jenkins console or run 'kubectl describe pods'."
         }
     }
 }
