@@ -4,7 +4,6 @@ pipeline {
         DOCKER_HUB_USER = "shivaamaroju"
         IMAGE_NAME = "wanderlust"
         REGISTRY_ID = "docker-hub-token" 
-        // Add your Jenkins Credentials ID for K8s here
         K8S_CREDENTIAL_ID = "aks-kubeconfig-file" 
     }
 
@@ -30,19 +29,30 @@ pipeline {
             }
         }
 
-       stage('Deploy to AKS') {
-    steps {
-        // Ensure the ID matches what you saved in Jenkins Credentials
-        withCredentials([file(credentialsId: 'aks-kubeconfig-file', variable: 'KUBECONFIG')]) {
-            // Updating the image tag (from your previous log)
-            sh "sed -i 's|image:.*|image: shivaamaroju/wanderlust:1|' deployment.yaml"
-            
-            // Applying the changes
-            sh 'kubectl apply -f deployment.yaml --kubeconfig=$KUBECONFIG'
-            
-            // Optional: Verify rollout
-            sh 'kubectl rollout status deployment/wanderlust --kubeconfig=$KUBECONFIG'
+        stage('Deploy to AKS') {
+            steps {
+                // Using withCredentials (file) because withKubeConfig method was missing/failing
+                withCredentials([file(credentialsId: "${K8S_CREDENTIAL_ID}", variable: 'KUBECONFIG')]) {
+                    
+                    // Dynamically update the deployment.yaml with the current build number
+                    sh "sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}|' deployment.yaml"
+                    
+                    // Apply the updated manifest
+                    sh "kubectl apply -f deployment.yaml --kubeconfig=\$KUBECONFIG"
+                    
+                    // Verify the rollout was successful
+                    sh "kubectl rollout status deployment/${IMAGE_NAME} --kubeconfig=\$KUBECONFIG"
+                }
+            }
         }
     }
-}
+
+    post {
+        success {
+            echo "Successfully built, pushed, and deployed ${IMAGE_NAME}:${env.BUILD_NUMBER} to AKS!"
+        }
+        failure {
+            echo "Pipeline failed. Check the logs for errors."
+        }
+    }
 }
