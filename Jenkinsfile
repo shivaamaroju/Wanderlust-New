@@ -34,7 +34,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: "${K8S_CREDENTIAL_ID}", variable: 'KUBECONFIG')]) {
                     // Update deployment.yaml with the current Jenkins Build Number
-                    sh "sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}|' deployment.yaml"
+                    sh "sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.v1|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}|' deployment.yaml"
                     
                     // Apply to AKS
                     sh "kubectl apply -f deployment.yaml --kubeconfig=\$KUBECONFIG"
