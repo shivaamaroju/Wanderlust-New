@@ -29,24 +29,22 @@ pipeline {
             }
         }
 
-        stage('Deploy to AKS') {
+   stage('Deploy to AKS') {
             steps {
-                // Using withCredentials (file) because withKubeConfig method was missing/failing
                 withCredentials([file(credentialsId: "${K8S_CREDENTIAL_ID}", variable: 'KUBECONFIG')]) {
                     
-                    // Dynamically update the deployment.yaml with the current build number
+                    // The sed command worked fine in your logs
                     sh "sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}|' deployment.yaml"
                     
-                    // Apply the updated manifest
+                    // Apply the manifest
                     sh "kubectl apply -f deployment.yaml --kubeconfig=\$KUBECONFIG"
                     
-                    // Verify the rollout was successful
-                    sh "kubectl rollout status deployment/${IMAGE_NAME} --kubeconfig=\$KUBECONFIG"
+                    // FIXED: Changed "deployment/${IMAGE_NAME}" to "deployment/wanderlust-deployment"
+                    // to match your actual K8s resource name
+                    sh "kubectl rollout status deployment/wanderlust-deployment --kubeconfig=\$KUBECONFIG"
                 }
             }
         }
-    }
-
     post {
         success {
             echo "Successfully built, pushed, and deployed ${IMAGE_NAME}:${env.BUILD_NUMBER} to AKS!"
