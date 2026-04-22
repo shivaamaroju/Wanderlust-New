@@ -39,20 +39,20 @@ pipeline {
                     // Apply manifests
                     sh "kubectl apply -f deployment.yaml --kubeconfig=\$KUBECONFIG"
                     
-                    // Wait for the rollout to finish
+                    // Wait for rollout
                     sh "kubectl rollout status deployment/wanderlust-deployment --kubeconfig=\$KUBECONFIG"
                     
-                    // Logic to display the External IP
-                    echo "Fetching External IP from Azure..."
+                    // Fetch External IP
+                    echo "Waiting for Azure to assign Public IP..."
                     script {
                         def externalIp = ""
-                        while(externalIp == "" || externalIp.contains("pending")) {
+                        while(externalIp == "" || externalIp.contains("pending") || externalIp == "null") {
                             externalIp = sh(script: "kubectl get svc wanderlust-service --kubeconfig=\$KUBECONFIG -o jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
-                            if(externalIp == "" || externalIp.contains("pending")) {
-                                echo "IP is still pending... waiting 10 seconds"
+                            if(externalIp == "" || externalIp.contains("pending") || externalIp == "null") {
                                 sleep 10
                             }
                         }
+                        echo "--- DEPLOYMENT SUCCESSFUL ---"
                         echo "Your Application is live at: http://${externalIp}"
                     }
                 }
@@ -61,11 +61,8 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Build and Deployment Successful!"
-        }
         failure {
-            echo "Deployment failed. Check the Jenkins console or run 'kubectl describe pods'."
+            echo "Deployment failed. Run 'kubectl describe pod' to check for errors."
         }
     }
 }
