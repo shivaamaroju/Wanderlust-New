@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: wanderlust-service
 spec:
-  type: LoadBalancer
+  type: LoadBalancer  # This provisions a Public IP in Azure
   selector:
     app: wanderlust
   ports:
     - protocol: TCP
-      port: 8082        
-      targetPort: 8082 
+      port: 80         # You can visit http://<External-IP>
+      targetPort: 8090 # Traffic is sent to your app's port
